@@ -3,9 +3,11 @@
 
 # Python
 .venv/
+venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+*.py[cod]
 
 # Training Data
 data/
@@ -29,3 +31,11 @@ mlflow.db
 *.log
 
 *.egg-info/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+.terraform.lock.hcl
