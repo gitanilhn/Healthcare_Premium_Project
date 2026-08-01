@@ -1,41 +1,77 @@
-name: AWS S3 Connection Test
+name: CI - Test and Push Docker Image to ECR
 
 on:
   push:
     branches:
       - main
 
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: healthcare-premium-api
+
 jobs:
-  s3-test:
+
+  # ============================================================
+  # JOB 1: RUN CI TESTS
+  # ============================================================
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------------
+      # Checkout Repository
+      # --------------------------------------------------------
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # --------------------------------------------------------
+      # Setup Python
+      # --------------------------------------------------------
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # --------------------------------------------------------
+      # Install uv
+      # --------------------------------------------------------
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
           version: latest
 
+      # --------------------------------------------------------
+      # Install Dependencies
+      # --------------------------------------------------------
       - name: Install Dependencies
         run: uv sync --locked
 
+      # --------------------------------------------------------
+      # Configure AWS Credentials
+      # Using existing AWS Access Keys
+      # --------------------------------------------------------
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v5
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
+      # --------------------------------------------------------
+      # Verify AWS Identity
+      # --------------------------------------------------------
       - name: Verify AWS Identity
         run: aws sts get-caller-identity
 
+      # --------------------------------------------------------
+      # Download Model Artifacts from S3
+      # --------------------------------------------------------
       - name: Download Model Artifacts
         run: |
           mkdir -p artifacts/latest
@@ -45,17 +81,113 @@ jobs:
             artifacts/latest/ \
             --recursive
 
+      # --------------------------------------------------------
+      # Verify Model Artifacts
+      # --------------------------------------------------------
       - name: Verify Downloaded Artifacts
         run: |
-          ls -R artifacts
+          echo "Downloaded artifacts:"
+          ls -lh artifacts/latest
 
           test -f artifacts/latest/model.pkl
           test -f artifacts/latest/preprocessor.pkl
           test -f artifacts/latest/metadata.json
           test -f artifacts/latest/feature_schema.json
 
+          echo "All required ML artifacts are present."
+
+      # --------------------------------------------------------
+      # Run Unit Tests
+      # --------------------------------------------------------
       - name: Run Unit Tests
         env:
           APP_ENV: ci
           MODEL_SOURCE: local
         run: uv run pytest -v
+
+
+  # ============================================================
+  # JOB 2: BUILD AND PUSH DOCKER IMAGE TO ECR
+  # ============================================================
+  build-and-push:
+    name: Build and Push Docker Image to ECR
+    runs-on: ubuntu-latest
+
+    # Only run after tests pass
+    needs: test
+
+    # Only push Docker image when code is pushed to main
+    # Pull requests will run tests but won't push images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+
+      # --------------------------------------------------------
+      # Checkout Repository
+      # --------------------------------------------------------
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # Configure AWS Credentials
+      # Using existing AWS Access Keys
+      # --------------------------------------------------------
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # --------------------------------------------------------
+      # Verify AWS Identity
+      # --------------------------------------------------------
+      - name: Verify AWS Identity
+        run: aws sts get-caller-identity
+
+      # --------------------------------------------------------
+      # Login to Amazon ECR
+      # --------------------------------------------------------
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # --------------------------------------------------------
+      # Set ECR Image URI
+      # --------------------------------------------------------
+      - name: Set Docker Image URI
+        run: |
+          echo "IMAGE_URI=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}" >> $GITHUB_ENV
+
+      # --------------------------------------------------------
+      # Build Docker Image
+      # --------------------------------------------------------
+      - name: Build Docker Image
+        run: |
+          docker build \
+            -t $IMAGE_URI:${GITHUB_SHA} \
+            -t $IMAGE_URI:latest \
+            .
+
+      # --------------------------------------------------------
+      # Push Git SHA Image
+      # --------------------------------------------------------
+      - name: Push Image with Git SHA
+        run: |
+          docker push $IMAGE_URI:${GITHUB_SHA}
+
+      # --------------------------------------------------------
+      # Push Latest Image
+      # --------------------------------------------------------
+      - name: Push Latest Image
+        run: |
+          docker push $IMAGE_URI:latest
+
+      # --------------------------------------------------------
+      # Display Image Information
+      # --------------------------------------------------------
+      - name: Display Image Information
+        run: |
+          echo "Docker images pushed successfully:"
+          echo "$IMAGE_URI:${GITHUB_SHA}"
+          echo "$IMAGE_URI:latest"
