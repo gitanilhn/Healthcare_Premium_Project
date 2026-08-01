@@ -39,3 +39,6 @@ mlflow.db
 crash.log
 crash.*.log
 .terraform.lock.hcl
+
+# ML model artifacts
+*.pkl
