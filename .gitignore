@@ -42,3 +42,4 @@ crash.*.log
 
 # ML model artifacts
 *.pkl
+artifacts/latest/
