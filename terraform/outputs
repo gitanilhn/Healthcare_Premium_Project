@@ -1,0 +1,71 @@
+#########################################################
+# VPC
+#########################################################
+
+output "vpc_id" {
+
+  description = "VPC ID"
+
+  value = aws_vpc.main.id
+
+}
+
+#########################################################
+# Public Subnets
+#########################################################
+
+output "public_subnet_1" {
+
+  description = "Public Subnet 1"
+
+  value = aws_subnet.public_1.id
+
+}
+
+output "public_subnet_2" {
+
+  description = "Public Subnet 2"
+
+  value = aws_subnet.public_2.id
+
+}
+
+#########################################################
+# EKS
+#########################################################
+
+output "cluster_name" {
+
+  description = "EKS Cluster Name"
+
+  value = aws_eks_cluster.main.name
+
+}
+
+output "cluster_endpoint" {
+
+  description = "Cluster Endpoint"
+
+  value = aws_eks_cluster.main.endpoint
+
+}
+
+output "cluster_version" {
+
+  description = "Kubernetes Version"
+
+  value = aws_eks_cluster.main.version
+
+}
+
+#########################################################
+# Node Group
+#########################################################
+
+output "node_group_name" {
+
+  description = "Managed Node Group"
+
+  value = aws_eks_node_group.main.node_group_name
+
+}
