@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from src.prediction import predictor
 
 
@@ -15,6 +17,24 @@ app = FastAPI(
     ),
     version="1.0.0",
 )
+
+
+# ==========================================================
+# Prometheus Metrics
+# ==========================================================
+# This automatically instruments FastAPI endpoints and
+# exposes Prometheus metrics at:
+#
+# http://localhost:8000/metrics
+#
+# Prometheus can scrape this endpoint to monitor:
+# - Request count
+# - Request duration
+# - HTTP status codes
+# - Request/response metrics
+# ==========================================================
+
+Instrumentator().instrument(app).expose(app)
 
 
 # ==========================================================
@@ -130,20 +150,25 @@ def predict(
 
     try:
 
-        # Convert validated Pydantic model
-        # into dictionary
+        # --------------------------------------------------
+        # Convert validated Pydantic model into dictionary
+        # --------------------------------------------------
 
         input_data = request.model_dump()
 
 
+        # --------------------------------------------------
         # Run prediction
+        # --------------------------------------------------
 
         prediction = predictor.predict(
             input_data
         )
 
 
+        # --------------------------------------------------
         # Return prediction
+        # --------------------------------------------------
 
         return PredictionResponse(
 

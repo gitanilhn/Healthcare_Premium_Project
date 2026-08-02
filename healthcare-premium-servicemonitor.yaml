@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: healthcare-premium-api
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - healthcare-premium
+  selector:
+    matchLabels:
+      app: healthcare-premium-api
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

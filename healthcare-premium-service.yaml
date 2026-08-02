@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-premium-api
+  namespace: healthcare-premium
+  labels:
+    app: healthcare-premium-api
+spec:
+  type: LoadBalancer
+  selector:
+    app: healthcare-premium-api
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 8000

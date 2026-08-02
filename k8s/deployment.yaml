@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: healthcare-premium-api
+  namespace: healthcare-premium
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: healthcare-premium-api
+
+  template:
+    metadata:
+      labels:
+        app: healthcare-premium-api
+
+    spec:
+      containers:
+
+        - name: healthcare-premium-api
+
+          image: 560205084313.dkr.ecr.ap-south-1.amazonaws.com/healthcare-premium-api:latest
+
+          imagePullPolicy: Always
+
+          env:
+
+            # =================================================
+            # MODEL CONFIGURATION
+            # =================================================
+
+            - name: MODEL_SOURCE
+              value: "s3"
+
+            - name: MODEL_BUCKET
+              value: "healthcare-premium-mlops-anil"
+
+            - name: MODEL_PREFIX
+              value: "models/healthcare-premium-prediction/v1"
+
+
+            # =================================================
+            # AWS CREDENTIALS
+            # =================================================
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_ACCESS_KEY_ID
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+
+
+            # =================================================
+            # AWS REGION
+            # =================================================
+
+            - name: AWS_DEFAULT_REGION
+              value: "ap-south-1"
+
+            - name: AWS_REGION
+              value: "ap-south-1"
+
+
+          # ===================================================
+          # CONTAINER PORT
+          # ===================================================
+
+          ports:
+            - containerPort: 8000
+
+
+          # ===================================================
+          # RESOURCES
+          # ===================================================
+
+          resources:
+
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
