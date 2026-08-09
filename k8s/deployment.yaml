@@ -22,7 +22,7 @@ spec:
 
         - name: healthcare-premium-api
 
-          image: 560205084313.dkr.ecr.ap-south-1.amazonaws.com/healthcare-premium-api:v3
+          image: 560205084313.dkr.ecr.ap-south-1.amazonaws.com/healthcare-premium-api:optimized-v3
 
           imagePullPolicy: Always
 
